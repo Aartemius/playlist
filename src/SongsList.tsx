@@ -8,20 +8,25 @@ import useMusicSearch from './hooks/useMusicSearch';
 
 const SongsList: FC = () => {
   const initialAlbums = ['A', 'B', 'C', 'D', 'E'];
-  const [albumsList, setAlbumsList] = useState(initialAlbums);
+  const renderedItemsTotalCount = 5;
+  const rotateInterval = 1000;
+
+  const [albumsList, setAlbumsList] = useState<string[]>(initialAlbums);
   const [inputValue, setInputValue] = useState<string>('');
   const [timer, setTimer] = useState<number | null>(null);
 
   const { data, isLoading, error } = useMusicSearch(inputValue);
 
   useEffect(() => {
-    setInterval(() => {
+    const interval = setInterval(() => {
       setAlbumsList(prevAlbums => {
         const currentAlbums = [...prevAlbums];
         currentAlbums.shift();
-        if (currentAlbums.length <= 5) {
-          const defaultAlbums = initialAlbums.filter(album => !currentAlbums.slice(0, 5).includes(album));
-          const defaultAlbum = defaultAlbums[0];
+        if (currentAlbums.length <= renderedItemsTotalCount) {
+          const defaultAlbums = initialAlbums.filter(album => (
+            !currentAlbums.slice(0, renderedItemsTotalCount).includes(album)
+          ));
+          const defaultAlbum = defaultAlbums.shift();
           if (defaultAlbum) {
             currentAlbums.push(defaultAlbum);
           }
@@ -29,11 +34,12 @@ const SongsList: FC = () => {
 
         return currentAlbums;
       });
-      return () => {
-        clearInterval(1000);
-      };
-    }, 1000);
-  }, []);
+    }, rotateInterval);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [inputValue]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (timer) {
@@ -42,7 +48,7 @@ const SongsList: FC = () => {
     setTimer(
       window.setTimeout(() => {
         setInputValue(e.target.value);
-      }, 1000)
+      }, rotateInterval)
     );
   };
 
@@ -50,9 +56,9 @@ const SongsList: FC = () => {
     if (data) {
       const filteredAlbums = Array.from(new Set(data.results.map(res => res.collectionName)))
         .sort((a, b) => a.localeCompare(b))
-        .slice(0, 5)
+        .slice(0, renderedItemsTotalCount)
 
-      setAlbumsList(albumsList.slice(0, 5).concat(filteredAlbums));
+      setAlbumsList(albumsList.slice(0, renderedItemsTotalCount).concat(filteredAlbums));
     }
   }, [data]);
 
@@ -69,7 +75,7 @@ const SongsList: FC = () => {
       </div>
       {error && <span>{error.message}</span>}
       <div className="albums-wrap">
-        {albumsList.slice(0, 5).map((album, index) => (
+        {albumsList.slice(0, renderedItemsTotalCount).map((album, index) => (
           <div
             className="album"
             key={album + index}
